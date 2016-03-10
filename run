@@ -1,0 +1,44 @@
+#!/bin/sh
+
+run_test() {
+	ENV=$1
+	INSTALL=$2
+
+	# Create new virtualenv.
+	virtualenv $ENV
+	. $ENV/bin/activate
+
+	# Build both packages.
+	(cd foo-baz; python setup.py sdist)
+	(cd foo-bar; python setup.py sdist)
+
+	# And install them with pip.
+	$INSTALL foo-bar/dist/*
+	$INSTALL foo-baz/dist/*
+
+	# Run the test.
+	echo ">>> Test using $INSTALL."
+	python test.py
+
+	# Deactivate the virtualenv.
+	deactivate
+
+	# Look what we have installed.
+	ls $ENV/lib/python*/site-packages
+}
+
+case "$1" in
+	clean)
+		# Clean up
+		rm -Rf env-pip env-easy
+		rm -Rf foo-bar/build foo-bar/dist foo-bar/MANIFEST
+		rm -Rf foo-baz/build foo-baz/dist foo-baz/MANIFEST
+		;;
+	test)
+		echo "Testing with pip"
+		run_test env-pip "pip install"
+		run_test env-easy "easy_install"
+		;;
+	*)
+		echo "Usage $0 test|clean"
+esac
